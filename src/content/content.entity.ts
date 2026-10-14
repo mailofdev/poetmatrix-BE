@@ -3,6 +3,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -22,12 +23,18 @@ export class Content {
   genre: string;
 
   @ApiProperty()
+  @Index()
   @Column({ name: 'save_as' })
   saveAs: string;
 
   @ApiProperty()
   @Column({ type: 'text' })
   writings: string;
+
+  @ApiProperty({ format: 'uuid', nullable: true })
+  @Index()
+  @Column({ name: 'author_id', type: 'uuid', nullable: true })
+  authorId: string | null;
 
   @ApiProperty()
   @CreateDateColumn({ name: 'created_at' })

@@ -5,43 +5,68 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module.js';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from './auth/guards/roles.guard.js';
+import { validateEnv } from './config/env.schema.js';
 import { ContentModule } from './content/content.module.js';
+import { HealthModule } from './health/health.module.js';
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
+const observeKey = process.env.OBSERVE_APP_KEY?.trim();
+const observeSecret = process.env.OBSERVE_APP_SECRET?.trim();
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
     Module({
         imports: [
-            ObserveModule.forRoot({
-                appKey: 'YOUR_APP_KEY',
-                appSecret: 'YOUR_APP_SECRET',
-                serviceId: 'poetmatrix-be',
-            }),
+            ...(observeKey && observeSecret
+                ? [
+                    ObserveModule.forRoot({
+                        appKey: observeKey,
+                        appSecret: observeSecret,
+                        serviceId: 'poetmatrix-be',
+                    }),
+                ]
+                : []),
             ConfigModule.forRoot({
                 isGlobal: true,
+                validate: validateEnv,
+            }),
+            ThrottlerModule.forRoot({
+                throttlers: [{ name: 'default', ttl: 60_000, limit: 120 }],
             }),
             TypeOrmModule.forRootAsync({
                 inject: [ConfigService],
                 useFactory: (config) => ({
                     type: 'postgres',
-                    host: config.get('DB_HOST'),
-                    port: Number(config.get('DB_PORT') ?? 5432),
-                    username: config.get('DB_USERNAME'),
-                    password: config.get('DB_PASSWORD'),
-                    database: config.get('DB_NAME'),
+                    host: config.getOrThrow('DB_HOST'),
+                    port: config.getOrThrow('DB_PORT'),
+                    username: config.getOrThrow('DB_USERNAME'),
+                    password: config.getOrThrow('DB_PASSWORD'),
+                    database: config.getOrThrow('DB_NAME'),
                     autoLoadEntities: true,
-                    synchronize: true,
+                    synchronize: false,
+                    logging: ['error'],
                 }),
             }),
+            AuthModule,
             ContentModule,
+            HealthModule,
         ],
         controllers: [AppController],
-        providers: [AppService],
+        providers: [
+            AppService,
+            { provide: APP_GUARD, useClass: ThrottlerGuard },
+            { provide: APP_GUARD, useClass: JwtAuthGuard },
+            { provide: APP_GUARD, useClass: RolesGuard },
+        ],
     })
 ], AppModule);
 export { AppModule };

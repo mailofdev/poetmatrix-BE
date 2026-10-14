@@ -4,6 +4,7 @@ export declare class Content {
     genre: string;
     saveAs: string;
     writings: string;
+    authorId: string | null;
     createdAt: Date;
     updatedAt: Date;
 }

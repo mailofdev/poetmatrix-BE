@@ -7,16 +7,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+import * as openapi from "@nestjs/swagger";
 import { ApiProperty } from '@nestjs/swagger';
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn, } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn, } from 'typeorm';
 let Content = class Content {
     id;
     title;
     genre;
     saveAs;
     writings;
+    authorId;
     createdAt;
     updatedAt;
+    static _OPENAPI_METADATA_FACTORY() {
+        return { id: { required: true, type: () => String }, title: { required: true, type: () => String }, genre: { required: true, type: () => String }, saveAs: { required: true, type: () => String }, writings: { required: true, type: () => String }, authorId: { required: true, type: () => String, nullable: true }, createdAt: { required: true, type: () => Date }, updatedAt: { required: true, type: () => Date } };
+    }
 };
 __decorate([
     ApiProperty({ format: 'uuid' }),
@@ -35,6 +40,7 @@ __decorate([
 ], Content.prototype, "genre", void 0);
 __decorate([
     ApiProperty(),
+    Index(),
     Column({ name: 'save_as' }),
     __metadata("design:type", String)
 ], Content.prototype, "saveAs", void 0);
@@ -43,6 +49,12 @@ __decorate([
     Column({ type: 'text' }),
     __metadata("design:type", String)
 ], Content.prototype, "writings", void 0);
+__decorate([
+    ApiProperty({ format: 'uuid', nullable: true }),
+    Index(),
+    Column({ name: 'author_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Content.prototype, "authorId", void 0);
 __decorate([
     ApiProperty(),
     CreateDateColumn({ name: 'created_at' }),

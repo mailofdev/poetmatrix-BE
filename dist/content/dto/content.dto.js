@@ -7,51 +7,48 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import * as openapi from "@nestjs/swagger";
+import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { IsIn, IsString, MaxLength, MinLength } from 'class-validator';
+export const SAVE_AS_VALUES = ['draft', 'published'];
 export class CreateContentDto {
     title;
     genre;
     saveAs;
     writings;
+    static _OPENAPI_METADATA_FACTORY() {
+        return { title: { required: true, type: () => String, minLength: 1, maxLength: 200 }, genre: { required: true, type: () => String, minLength: 1, maxLength: 80 }, saveAs: { required: true, enum: ["published", "draft"], enum: SAVE_AS_VALUES }, writings: { required: true, type: () => String, minLength: 1, maxLength: 100000 } };
+    }
 }
 __decorate([
-    ApiProperty({ example: 'Night Garden' }),
+    ApiProperty({ example: 'Night Garden', maxLength: 200 }),
+    IsString(),
+    MinLength(1),
+    MaxLength(200),
     __metadata("design:type", String)
 ], CreateContentDto.prototype, "title", void 0);
 __decorate([
-    ApiProperty({ example: 'lyric' }),
+    ApiProperty({ example: 'lyric', maxLength: 80 }),
+    IsString(),
+    MinLength(1),
+    MaxLength(80),
     __metadata("design:type", String)
 ], CreateContentDto.prototype, "genre", void 0);
 __decorate([
-    ApiProperty({ example: 'draft' }),
+    ApiProperty({ enum: SAVE_AS_VALUES, example: 'draft' }),
+    IsIn(SAVE_AS_VALUES),
     __metadata("design:type", String)
 ], CreateContentDto.prototype, "saveAs", void 0);
 __decorate([
     ApiProperty({ example: 'The moon keeps a quiet ledger of the trees.' }),
+    IsString(),
+    MinLength(1),
+    MaxLength(100_000),
     __metadata("design:type", String)
 ], CreateContentDto.prototype, "writings", void 0);
-export class UpdateContentDto {
-    title;
-    genre;
-    saveAs;
-    writings;
+export class UpdateContentDto extends PartialType(CreateContentDto) {
+    static _OPENAPI_METADATA_FACTORY() {
+        return {};
+    }
 }
-__decorate([
-    ApiPropertyOptional({ example: 'Night Garden' }),
-    __metadata("design:type", String)
-], UpdateContentDto.prototype, "title", void 0);
-__decorate([
-    ApiPropertyOptional({ example: 'lyric' }),
-    __metadata("design:type", String)
-], UpdateContentDto.prototype, "genre", void 0);
-__decorate([
-    ApiPropertyOptional({ example: 'published' }),
-    __metadata("design:type", String)
-], UpdateContentDto.prototype, "saveAs", void 0);
-__decorate([
-    ApiPropertyOptional({
-        example: 'The moon keeps a quiet ledger of the trees.',
-    }),
-    __metadata("design:type", String)
-], UpdateContentDto.prototype, "writings", void 0);
 //# sourceMappingURL=content.dto.js.map

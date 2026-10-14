@@ -6,8 +6,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 };
 import { Injectable } from '@nestjs/common';
 let AppService = class AppService {
-    getHello() {
-        return 'Hello World!';
+    getStatus() {
+        return { name: 'PoetMatrix API', status: 'ok' };
     }
 };
 AppService = __decorate([

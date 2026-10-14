@@ -1,118 +1,66 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# PoetMatrix API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 12 API for accounts, sessions, and the existing content model. PostgreSQL is accessed through TypeORM. Schema changes go through migrations. `synchronize` is off.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Layout
 
-## Description
+- `src/auth` — registration, login, refresh rotation, logout, and password reset
+- `src/users` — accounts and role changes
+- `src/content` — the existing piece fields: title, genre, save as, writings, plus `author_id`
+- `src/common` — validation DTOs, guards' decorators, the exception filter, and access rules
+- `src/database/migrations` — SQL migrations that keep existing `contents` rows
+- `src/health` — liveness and database readiness
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Routes are prefixed with `/api/v1`. Interactive docs are served at `/docs` outside production unless `SWAGGER_ENABLED=true`.
 
-## Project setup
+## Authentication
 
-```bash
-$ npm install
-```
+The API issues a JWT access token and an opaque refresh token. Passwords are hashed with Argon2id. The browser never stores these tokens in JavaScript: the Next.js app keeps them in httpOnly cookies and sends `Authorization: Bearer` from the server.
 
-## Compile and run the project
+- Access tokens expire after 15 minutes by default and contain only the user id. Every protected request loads the current role from the database.
+- Refresh tokens last 7 days, are stored as SHA-256 hashes, and rotate on use. Reuse of a revoked token revokes the whole token family.
+- Logout revokes the presented refresh token. Logout-all and a successful password reset revoke every active refresh token.
+- Registration accepts only `reader` or `writer`. `superAdmin` cannot be self-assigned.
+- Forgotten-password responses do not reveal whether the email exists. In development only, the response includes `developmentResetToken` so the flow can be completed without an email provider. Production does not return the token. Email delivery is not wired up yet.
 
-```bash
-# development
-$ npm run start
+Roles:
 
-# watch mode
-$ npm run start:dev
+| Role | Content |
+| --- | --- |
+| anonymous | Read published pieces |
+| reader | Read published pieces and their own drafts |
+| writer | Create and change their own pieces |
+| superAdmin | Read and change every piece, and change other users' roles |
 
-# production mode
-$ npm run start:prod
-```
+A super admin cannot change their own role or demote the last super admin. Hidden pieces return 404 so callers cannot probe ids.
 
-## Run tests
+## Setup
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
+cp .env.example .env
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Fill `.env` with the database settings and a `JWT_ACCESS_SECRET` of at least 32 characters. Do not commit `.env`.
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run migration:run
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The API listens on port 4000. Optional `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_PASSWORD` create the first super admin when that email does not already exist. They do not reset an existing password.
 
-## Observability
+## Scripts
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+```bash
+npm run start:dev    # watch mode
+npm run build
+npm run start:prod
+npm test
+npm run test:e2e
+npm run lint
+npm run migration:run
+npm run migration:revert
+```
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-This project is already instrumented. Create a free account at [observe.nestjs.com](https://observe.nestjs.com), add an application, and paste the generated app key and secret into the `ObserveModule.forRoot()` call in `src/app.module.ts`.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+`migration:revert` drops the auth tables and the `author_id` column. It does not drop `contents`.
