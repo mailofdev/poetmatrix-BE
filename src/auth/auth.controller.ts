@@ -7,6 +7,7 @@ import type { AuthUser } from '../common/types/auth-user.js';
 import { AuthService } from './auth.service.js';
 import {
   ForgotPasswordDto,
+  GoogleAuthDto,
   LoginDto,
   RefreshTokenDto,
   RegisterDto,
@@ -30,6 +31,13 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('google')
+  google(@Body() dto: GoogleAuthDto) {
+    return this.authService.google(dto.idToken);
   }
 
   @Public()

@@ -53,6 +53,21 @@ export const envSchema = z
       blankToUndefined,
       z.string().min(1).optional(),
     ),
+    GOOGLE_CLIENT_ID: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    SMTP_HOST: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    SMTP_USER: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    SMTP_PASSWORD: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    SMTP_FROM: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    RAZORPAY_KEY_ID: z.preprocess(blankToUndefined, z.string().min(1).optional()),
+    RAZORPAY_KEY_SECRET: z.preprocess(
+      blankToUndefined,
+      z.string().min(1).optional(),
+    ),
+    PLAN_WEBHOOK_SECRET: z.preprocess(
+      blankToUndefined,
+      z.string().min(16).optional(),
+    ),
   })
   .superRefine((env, ctx) => {
     const hasEmail = Boolean(env.SUPER_ADMIN_EMAIL);

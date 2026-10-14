@@ -1,12 +1,15 @@
-export declare const SAVE_AS_VALUES: readonly ["draft", "published"];
-export type SaveAsValue = (typeof SAVE_AS_VALUES)[number];
-export declare class CreateContentDto {
+export declare class SaveContentDto {
     title: string;
-    genre: string;
-    saveAs: SaveAsValue;
-    writings: string;
+    subtitle?: string;
+    body: string;
+    type?: 'story' | 'article';
+    articleSubtype?: string;
+    tags?: string;
+    language?: string;
+    status: 'draft' | 'published';
+    visibility?: 'public' | 'private' | 'premium';
+    commentsAllowed?: boolean;
+    genre?: string;
+    seriesTitle?: string;
+    seriesChapter?: number;
 }
-declare const UpdateContentDto_base: import("@nestjs/common").Type<Partial<CreateContentDto>>;
-export declare class UpdateContentDto extends UpdateContentDto_base {
-}
-export {};

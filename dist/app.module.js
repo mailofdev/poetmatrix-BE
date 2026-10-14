@@ -12,12 +12,21 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { ActivityModule } from './activity/activity.module.js';
+import { AdminModule } from './admin/admin.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { BillingModule } from './billing/billing.module.js';
+import { CommunityModule } from './community/community.module.js';
+import { DiscoveryModule } from './discovery/discovery.module.js';
+import { EngagementModule } from './engagement/engagement.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
 import { validateEnv } from './config/env.schema.js';
 import { ContentModule } from './content/content.module.js';
 import { HealthModule } from './health/health.module.js';
+import { MailModule } from './mail/mail.module.js';
+import { PlatformModule } from './platform/platform.module.js';
+import { SocialModule } from './social/social.module.js';
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 const observeKey = process.env.OBSERVE_APP_KEY?.trim();
 const observeSecret = process.env.OBSERVE_APP_SECRET?.trim();
@@ -56,8 +65,17 @@ AppModule = __decorate([
                     logging: ['error'],
                 }),
             }),
+            MailModule,
+            PlatformModule,
+            ActivityModule,
             AuthModule,
             ContentModule,
+            SocialModule,
+            EngagementModule,
+            BillingModule,
+            DiscoveryModule,
+            CommunityModule,
+            AdminModule,
             HealthModule,
         ],
         controllers: [AppController],

@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import {
   Injectable,
   Logger,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,7 @@ import {
 } from '../common/security/tokens.js';
 import type { PublicUser } from '../common/types/auth-user.js';
 import { User } from '../users/user.entity.js';
+import { MailService } from '../mail/mail.service.js';
 import { UsersService } from '../users/users.service.js';
 import { PasswordResetToken } from './password-reset-token.entity.js';
 import { RefreshToken } from './refresh-token.entity.js';
@@ -49,14 +51,50 @@ export class AuthService {
     private readonly refreshTokens: Repository<RefreshToken>,
     @InjectRepository(PasswordResetToken)
     private readonly resetTokens: Repository<PasswordResetToken>,
+    private readonly mail: MailService,
   ) {}
 
   register(input: {
     email: string;
     password: string;
-    role?: string;
   }): Promise<PublicUser> {
     return this.usersService.create(input);
+  }
+
+  async google(idToken: string): Promise<IssuedSession & { created: boolean }> {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) {
+      throw new ServiceUnavailableException('Google sign-in is not configured');
+    }
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+    );
+    if (!response.ok) {
+      throw new UnauthorizedException('Google sign-in was rejected');
+    }
+    const payload = (await response.json()) as {
+      aud?: string;
+      email?: string;
+      email_verified?: string;
+      name?: string;
+    };
+    if (
+      payload.aud !== clientId ||
+      payload.email_verified !== 'true' ||
+      !payload.email
+    ) {
+      throw new UnauthorizedException('Google sign-in was rejected');
+    }
+    const account = await this.usersService.createFromGoogle({
+      email: payload.email,
+      displayName: payload.name,
+    });
+    const user = await this.usersService.findByEmail(payload.email);
+    if (!user) {
+      throw new UnauthorizedException('Google sign-in was rejected');
+    }
+    const session = await this.issueSession(user, randomUUID());
+    return { ...session, created: account.created };
   }
 
   async login(email: string, password: string): Promise<IssuedSession> {
@@ -137,10 +175,7 @@ export class AuthService {
     );
   }
 
-  async forgotPassword(email: string): Promise<{
-    message: string;
-    developmentResetToken?: string;
-  }> {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     this.logger.log('Password reset requested');
     const user = await this.usersService.findByEmail(email);
     if (!user) {
@@ -162,14 +197,12 @@ export class AuthService {
         usedAt: null,
       }),
     );
-
-    const result: { message: string; developmentResetToken?: string } = {
-      message: GENERIC_RESET,
-    };
-    if (this.config.get<string>('NODE_ENV') === 'development') {
-      result.developmentResetToken = rawToken;
-    }
-    return result;
+    const origin = this.config.getOrThrow<string>('FRONTEND_ORIGIN');
+    await this.mail.sendPasswordReset(
+      user.email,
+      `${origin}/reset-password?token=${encodeURIComponent(rawToken)}`,
+    );
+    return { message: GENERIC_RESET };
   }
 
   async resetPassword(rawToken: string, password: string): Promise<void> {

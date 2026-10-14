@@ -1,22 +1,67 @@
 import { Repository } from 'typeorm';
 import type { AuthUser } from '../common/types/auth-user.js';
-import { Content } from './content.entity.js';
-import { CreateContentDto, UpdateContentDto } from './dto/content.dto.js';
-export type ContentPage = {
-    data: Content[];
-    meta: {
-        page: number;
-        limit: number;
-        total: number;
-    };
+import { ActivityService } from '../activity/activity.service.js';
+import { NotificationService } from '../social/notification.service.js';
+import { PlatformService } from '../platform/platform.service.js';
+import { UsersService } from '../users/users.service.js';
+import { Content, PublishUsage, SearchIndex } from './content.entity.js';
+import { SaveContentDto } from './dto/content.dto.js';
+export type ContentView = {
+    id: string;
+    title: string;
+    subtitle: string;
+    body: string;
+    type: string;
+    articleSubtype: string | null;
+    tags: string[];
+    cover: string | null;
+    language: string;
+    status: string;
+    visibility: string;
+    commentsAllowed: boolean;
+    featured: boolean;
+    boosted: boolean;
+    genre: string;
+    seriesTitle: string | null;
+    seriesChapter: number | null;
+    authorId: string | null;
+    authorName: string;
+    preview: string;
+    readingMinutes: number;
+    viewCount: number;
+    limitReason: string | null;
+    createdAt: Date;
+    updatedAt: Date;
 };
 export declare class ContentService {
-    private readonly contentRepository;
-    constructor(contentRepository: Repository<Content>);
-    create(dto: CreateContentDto, user: AuthUser): Promise<Content>;
-    findAll(user: AuthUser | null, page: number, limit: number): Promise<ContentPage>;
-    findOne(id: string, user: AuthUser | null): Promise<Content>;
-    update(id: string, dto: UpdateContentDto, user: AuthUser): Promise<Content>;
-    remove(id: string, user: AuthUser): Promise<void>;
+    private readonly contents;
+    private readonly usage;
+    private readonly search;
+    private readonly users;
+    private readonly notifications;
+    private readonly activity;
+    private readonly platform;
+    constructor(contents: Repository<Content>, usage: Repository<PublishUsage>, search: Repository<SearchIndex>, users: UsersService, notifications: NotificationService, activity: ActivityService, platform: PlatformService);
+    create(dto: SaveContentDto, actor: AuthUser): Promise<ContentView>;
+    update(id: string, dto: SaveContentDto, actor: AuthUser): Promise<ContentView>;
+    remove(id: string, actor: AuthUser): Promise<void>;
+    catalog(limit: number, cursor?: string, genre?: string): Promise<{
+        data: ContentView[];
+        nextCursor: string | null;
+    }>;
+    mine(actor: AuthUser): Promise<ContentView[]>;
+    findOne(id: string, actor: AuthUser | null): Promise<ContentView>;
+    setCover(id: string, actor: AuthUser, coverPath: string): Promise<ContentView>;
+    usageFor(userId: string): Promise<{
+        plan: string;
+        used: number;
+        cap: number | null;
+        month: string;
+    }>;
+    private persist;
     private requireMutable;
+    present(content: Content): ContentView;
+    private monthKey;
+    private encodeCursor;
+    private decodeCursor;
 }

@@ -1,41 +1,82 @@
-import { Role } from '../../users/role.js';
+import { Mode, Plan, Role } from '../../users/role.js';
 import {
   canAssignRole,
   canMutateContent,
   canReadContent,
 } from './content-access.js';
 
-const reader = { id: 'reader', email: 'r@example.com', role: Role.Reader };
-const writer = { id: 'writer', email: 'w@example.com', role: Role.Writer };
-const admin = { id: 'admin', email: 'a@example.com', role: Role.SuperAdmin };
+const reader = {
+  id: 'reader',
+  email: 'r@example.com',
+  role: Role.Reader,
+  mode: Mode.Reader,
+  plan: Plan.Free,
+  readerSubscription: true,
+  writerSubscription: false,
+};
+const writer = {
+  id: 'writer',
+  email: 'w@example.com',
+  role: Role.Writer,
+  mode: Mode.Writer,
+  plan: Plan.Free,
+  readerSubscription: true,
+  writerSubscription: true,
+};
+const admin = {
+  id: 'admin',
+  email: 'a@example.com',
+  role: Role.SuperAdmin,
+  mode: Mode.Reader,
+  plan: Plan.Free,
+  readerSubscription: true,
+  writerSubscription: false,
+};
 
 describe('content access', () => {
-  const published = { saveAs: 'published', authorId: writer.id };
-  const draft = { saveAs: 'draft', authorId: writer.id };
-  const orphanDraft = { saveAs: 'draft', authorId: null };
+  const published = {
+    saveAs: 'published',
+    visibility: 'public',
+    authorId: writer.id,
+  };
+  const draft = {
+    saveAs: 'draft',
+    visibility: 'private',
+    authorId: writer.id,
+  };
+  const premium = {
+    saveAs: 'published',
+    visibility: 'premium',
+    authorId: writer.id,
+  };
 
-  it('lets anyone read published work', () => {
+  it('lets anyone read published public work', () => {
     expect(canReadContent(published, null)).toBe(true);
   });
 
-  it('hides drafts from other readers and anonymous users', () => {
+  it('hides private and premium work from guests and other readers', () => {
     expect(canReadContent(draft, null)).toBe(false);
+    expect(canReadContent(premium, null)).toBe(false);
     expect(canReadContent(draft, reader)).toBe(false);
+    expect(canReadContent(premium, reader)).toBe(false);
   });
 
-  it('lets the author and a super admin read drafts', () => {
+  it('lets the owner and a superadmin read private work', () => {
     expect(canReadContent(draft, writer)).toBe(true);
     expect(canReadContent(draft, admin)).toBe(true);
   });
 
-  it('lets only the authoring writer or a super admin change content', () => {
+  it('closes writer edits while the author is in reader mode', () => {
     expect(canMutateContent(draft, null)).toBe(false);
     expect(canMutateContent(draft, reader)).toBe(false);
+    expect(
+      canMutateContent(draft, { ...writer, mode: Mode.Reader }),
+    ).toBe(false);
     expect(canMutateContent(draft, writer)).toBe(true);
     expect(canMutateContent(published, { ...writer, id: 'other' })).toBe(
       false,
     );
-    expect(canMutateContent(orphanDraft, admin)).toBe(true);
+    expect(canMutateContent(draft, admin)).toBe(true);
   });
 
   it('blocks privilege changes that lock out administration', () => {

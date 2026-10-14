@@ -1,20 +1,10 @@
-export enum Role {
-  Reader = 'reader',
-  Writer = 'writer',
-  SuperAdmin = 'superAdmin',
-}
+import { Role } from './account-rules.js';
 
-export const SELF_SERVICE_ROLES = [Role.Reader, Role.Writer] as const;
+export { Mode, Plan, Role } from './account-rules.js';
 
 export function registrationRole(requested?: string): Role {
-  if (!requested) {
+  if (!requested || requested === Role.Reader) {
     return Role.Reader;
-  }
-  if (
-    requested === Role.Reader ||
-    requested === Role.Writer
-  ) {
-    return requested;
   }
   throw new Error('Registration cannot assign this role');
 }

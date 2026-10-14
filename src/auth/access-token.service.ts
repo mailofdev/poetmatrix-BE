@@ -36,11 +36,7 @@ export class AccessTokenService {
       if (!user) {
         return null;
       }
-      const authUser: AuthUser = {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      };
+      const authUser = this.usersService.toAuth(user);
       request.user = authUser;
       return authUser;
     } catch {

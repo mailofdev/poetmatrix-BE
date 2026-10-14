@@ -1,6 +1,7 @@
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { join } from 'node:path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule, ObserveInstrument } from './app.module.js';
@@ -10,6 +11,7 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule, {
         instrument: ObserveInstrument,
     });
+    app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
     const config = app.get(ConfigService);
     app.setGlobalPrefix('api');
     app.enableVersioning({
@@ -23,7 +25,7 @@ async function bootstrap() {
     app.enableCors({
         origin: config.getOrThrow('FRONTEND_ORIGIN'),
         credentials: true,
-        methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+        methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
     });
     if (config.get('TRUST_PROXY') === 'true') {

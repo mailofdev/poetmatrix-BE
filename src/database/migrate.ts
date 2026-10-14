@@ -6,6 +6,7 @@ import { validateEnv } from '../config/env.schema.js';
 import { Content } from '../content/content.entity.js';
 import { User } from '../users/user.entity.js';
 import { InitAuthAndContent1760400000000 } from './migrations/1760400000000-InitAuthAndContent.js';
+import { Product1760500000000 } from './migrations/1760500000000-Product.js';
 
 const env = validateEnv(process.env as Record<string, unknown>);
 
@@ -17,7 +18,7 @@ export const AppDataSource = new DataSource({
   password: env.DB_PASSWORD,
   database: env.DB_NAME,
   entities: [User, Content, RefreshToken, PasswordResetToken],
-  migrations: [InitAuthAndContent1760400000000],
+  migrations: [InitAuthAndContent1760400000000, Product1760500000000],
   synchronize: false,
 });
 

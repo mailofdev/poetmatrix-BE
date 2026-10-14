@@ -1,31 +1,87 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsIn, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
+import { ARTICLE_SUBTYPES, GENRES } from '../content-rules.js';
 
-export const SAVE_AS_VALUES = ['draft', 'published'] as const;
-export type SaveAsValue = (typeof SAVE_AS_VALUES)[number];
-
-export class CreateContentDto {
-  @ApiProperty({ example: 'Night Garden', maxLength: 200 })
+export class SaveContentDto {
+  @ApiProperty()
   @IsString()
   @MinLength(1)
   @MaxLength(200)
   title: string;
 
-  @ApiProperty({ example: 'lyric', maxLength: 80 })
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  @MaxLength(80)
-  genre: string;
+  @MaxLength(300)
+  subtitle?: string;
 
-  @ApiProperty({ enum: SAVE_AS_VALUES, example: 'draft' })
-  @IsIn(SAVE_AS_VALUES)
-  saveAs: SaveAsValue;
-
-  @ApiProperty({ example: 'The moon keeps a quiet ledger of the trees.' })
+  @ApiProperty()
   @IsString()
   @MinLength(1)
   @MaxLength(100_000)
-  writings: string;
-}
+  body: string;
 
-export class UpdateContentDto extends PartialType(CreateContentDto) {}
+  @ApiPropertyOptional({ enum: ['story', 'article'] })
+  @IsOptional()
+  @IsIn(['story', 'article'])
+  type?: 'story' | 'article';
+
+  @ApiPropertyOptional({ enum: ARTICLE_SUBTYPES })
+  @IsOptional()
+  @IsIn(ARTICLE_SUBTYPES)
+  articleSubtype?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  tags?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(16)
+  language?: string;
+
+  @ApiProperty({ enum: ['draft', 'published'] })
+  @IsIn(['draft', 'published'])
+  status: 'draft' | 'published';
+
+  @ApiPropertyOptional({ enum: ['public', 'private', 'premium'] })
+  @IsOptional()
+  @IsIn(['public', 'private', 'premium'])
+  visibility?: 'public' | 'private' | 'premium';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  commentsAllowed?: boolean;
+
+  @ApiPropertyOptional({ enum: GENRES })
+  @IsOptional()
+  @IsIn(GENRES)
+  genre?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  seriesTitle?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(999)
+  seriesChapter?: number;
+}
