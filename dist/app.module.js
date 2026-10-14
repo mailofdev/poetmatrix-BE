@@ -8,6 +8,9 @@ import { Module } from '@nestjs/common';
 import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ContentModule } from './content/content.module.js';
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 let AppModule = class AppModule {
 };
@@ -19,6 +22,23 @@ AppModule = __decorate([
                 appSecret: 'YOUR_APP_SECRET',
                 serviceId: 'poetmatrix-be',
             }),
+            ConfigModule.forRoot({
+                isGlobal: true,
+            }),
+            TypeOrmModule.forRootAsync({
+                inject: [ConfigService],
+                useFactory: (config) => ({
+                    type: 'postgres',
+                    host: config.get('DB_HOST'),
+                    port: Number(config.get('DB_PORT') ?? 5432),
+                    username: config.get('DB_USERNAME'),
+                    password: config.get('DB_PASSWORD'),
+                    database: config.get('DB_NAME'),
+                    autoLoadEntities: true,
+                    synchronize: true,
+                }),
+            }),
+            ContentModule,
         ],
         controllers: [AppController],
         providers: [AppService],
